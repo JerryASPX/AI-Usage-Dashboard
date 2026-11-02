@@ -21,8 +21,22 @@ globalThis.UsageParser = (() => {
     if(direct&&Number(direct[1])<=100){used=Number(direct[1]);break;}
    }
    const products=[];
-   for(const m of flat.matchAll(/\b(Imagine|Grok\s*Bot|Grok\s*3|Grok\s*2|Deep\s*Search|Reasoning|Chat|Voice|Build|API)\s*[:：]?\s*(\d+(?:\.\d+)?)\s*%/gi)){
-    const value=Number(m[2]);if(value<=100&&!products.some(p=>p.label.toLowerCase()===m[1].toLowerCase()))products.push({label:m[1].replace(/grok\s*bot/i,'Grok Bot'),value});
+   const aliases=[['Imagine',/^(Imagine|想像|想象)$/i],['Grok Bot',/^Grok\s*Bot$/i],['Cursor',/^(Cursor|遊標|游标)$/i],['Deep Search',/^(Deep\s*Search|深度搜尋|深度搜索)$/i],['Reasoning',/^(Reasoning|推理)$/i],['Chat',/^(Chat|聊天)$/i],['Voice',/^(Voice|語音|语音)$/i],['Build',/^(Build|建置|構建|构建)$/i],['API',/^API$/i]];
+   const headerRE=/reset|refresh|weekly|total|remaining|used|usage|premium|supergrok|重設|重置|刷新|每[週周]|本[週周]|總|总|已使用|已用|剩餘|剩余|用量|使用情況|使用狀況/i;
+   function addProduct(raw,value){
+    const name=raw.replace(/\s+/g,' ').trim();
+    if(!name||name.length>24||headerRE.test(name)||value<0||value>100)return;
+    const label=aliases.find(([,re])=>re.test(name))?.[0]||name;
+    if(!products.some(p=>p.label.toLowerCase()===label.toLowerCase()))products.push({label,value});
+   }
+   for(const m of flat.matchAll(/(?:^|[^A-Za-z0-9])(Imagine|想像|想象|Grok\s*Bot|Grok\s*[23]|Cursor|遊標|游标|Deep\s*Search|深度搜尋|深度搜索|Reasoning|推理|Chat|聊天|Voice|語音|语音|Build|建置|構建|构建|API)\s*[:：]?\s*(\d+(?:\.\d+)?)\s*%/gi)){
+    addProduct(m[1],Number(m[2]));
+   }
+   const usageStart=lines.findIndex(s=>/使用情況|使用狀況|usage|每[週周]|weekly/i.test(s));
+   if(usageStart>=0)for(let i=usageStart;i<lines.length;i++){
+    const row=lines[i].match(/^([^%\d:：]{1,24}?)\s*[:：]?\s*(\d+(?:\.\d+)?)\s*%$/);
+    if(row)addProduct(row[1],Number(row[2]));
+    else if(/^[^%\d:：]{1,24}[:：]?$/.test(lines[i])&&/^\d+(?:\.\d+)?\s*%$/.test(lines[i+1]||''))addProduct(lines[i].replace(/[:：]$/,''),number(lines[i+1]));
    }
    const productSum=products.reduce((sum,p)=>sum+p.value,0);
    const percentages=[...flat.matchAll(/(\d+(?:\.\d+)?)\s*%/g)].map(m=>Number(m[1])).filter(n=>n<=100);
