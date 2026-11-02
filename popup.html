@@ -1,0 +1,8 @@
+<!doctype html>
+<html lang="zh-Hant"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>AI用量儀表板</title><link rel="stylesheet" href="popup.css"></head>
+<body>
+<header><img class="mascot" src="icons/icon128.png" alt="AI 低逃"><div><small>AI 低逃的用量手帳 · 開啟即查詢</small><h1>AI用量儀表板</h1></div></header>
+<nav aria-label="顯示或隱藏儀表板"><button data-toggle="chatgpt" aria-pressed="true">✓ ChatGPT</button><button data-toggle="gemini" aria-pressed="true">✓ Gemini</button><button data-toggle="grok" aria-pressed="true">✓ Grok</button><button data-toggle="claude" aria-pressed="true">✓ Claude</button></nav>
+<main><section class="card" id="chatgpt"></section><section class="card" id="gemini"></section><section class="card" id="grok"></section><section class="card" id="claude"></section></main>
+<footer><span>本機讀取 · 背景暫開用量頁，讀完即關閉</span><span id="clock" aria-live="polite">等待同步</span></footer>
+<script src="popup.js"></script></body></html>
