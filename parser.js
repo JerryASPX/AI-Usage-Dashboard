@@ -4,7 +4,7 @@ globalThis.UsageParser = (() => {
  const defs={
   chatgpt:[['five_hour','5 小時用量上限',/5\s*[- ]?\s*(?:hour|小時)|five.hour|五小時/i],['weekly','每週上限',/weekly|每[週周]|週上限/i]],
   gemini:[['current','目前用量',/current|目前用量|當前用量|本次|session/i],['weekly','每週上限',/weekly|每[週周]|週上限/i]],
-  claude:[['current','本次工作階段',/current session|目前用量|本次工作階段|當前|session/i],['weekly','每週用量',/weekly|每[週周]|週上限/i]]
+  claude:[['current','目前工作階段',/目前工作階段|本次工作階段|current session|目前用量|當前|session/i],['weekly','每週用量',/^本週$|每週用量|weekly|週上限/i]]
  };
  const number=s=>{const m=s.match(pct);return m&&Number(m[1])<=100?Number(m[1]):null;};
  function parseUsage(text,provider){
@@ -58,11 +58,14 @@ globalThis.UsageParser = (() => {
   }
   const metrics=[];
   for(const [id,label,re]of defs[provider]||[]){
-   const start=lines.findIndex(s=>re.test(s)&&!resetRE.test(s));if(start<0)continue;
+   const heading=provider==='claude'&&id==='weekly'?lines.findIndex(s=>/^(本週|weekly)$/i.test(s)):-1;
+   const start=heading>=0?heading:lines.findIndex(s=>re.test(s)&&!resetRE.test(s));if(start<0)continue;
    let end=lines.length;
    for(let i=start+1;i<lines.length;i++){if((defs[provider]||[]).some(d=>d[2].test(lines[i])&&!resetRE.test(lines[i]))||/^(sonnet|opus|額外用量|extra usage)/i.test(lines[i])){end=i;break;}}
-   const block=lines.slice(start,end),valueLine=block.find(s=>number(s)!==null&&!resetRE.test(s));if(!valueLine)continue;
-   const value=number(valueLine),kind=/remaining|剩餘|剩余/i.test(valueLine)?'remaining':/used|已使用|已用/i.test(valueLine)?'used':'reported';
+   const block=lines.slice(start,end),valueLines=block.filter(s=>number(s)!==null&&!resetRE.test(s));
+   const usedRE=/已使用|已用|\bused\b/i,remainingRE=/還剩|剩餘|剩余|remaining/i;
+   const valueLine=valueLines.find(s=>usedRE.test(s)&&!remainingRE.test(s))||valueLines.find(s=>remainingRE.test(s))||valueLines[0];if(!valueLine)continue;
+   const value=number(valueLine),kind=remainingRE.test(valueLine)?'remaining':usedRE.test(valueLine)?'used':'reported';
    const reset=block.find(s=>resetRE.test(s))||'';
    metrics.push({id,label,value,kind,reset});
   }
