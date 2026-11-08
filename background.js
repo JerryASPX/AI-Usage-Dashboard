@@ -67,15 +67,18 @@ async function updateProvider(id){
  let lastData=null;
  try{
   temporary=await chrome.tabs.create({url:CONFIG[id].url,active:false});
-  const deadline=Date.now()+12000;
-  while(Date.now()<deadline){
+  for(let attempt=0;attempt<4;attempt++){
+   const deadline=Date.now()+12000;
+   while(Date.now()<deadline){
    const tab=await chrome.tabs.get(temporary.id);
    if(tab.status==='complete'){
     const data=await bounded(id==='grok'?readGrokFrames(temporary.id):readTab(temporary.id),3500,null);
     if(data)lastData=data;
     if(data?.metrics?.length)return {state:'updated',data};
    }
-   await delay(650);
+    await delay(650);
+   }
+   if(attempt<3)await chrome.tabs.reload(temporary.id);
   }
   const detail=id==='grok'&&lastData?.readInfo?`（讀到的百分比 ${lastData.readInfo.values?.join('、')||'無'}）`:'';
   return {state:'needs_usage',message:id==='grok'?'Grok 暫時分頁未顯示完整用量'+detail:'官方用量頁尚未載入或無法辨識百分比'};
@@ -88,7 +91,7 @@ function scanOne(id){
  if(scanning.has(id))return scanning.get(id);
  const task=(async()=>{
   let result;
-  try{result=await bounded(updateProvider(id),16500,{state:'needs_usage',message:'讀取逾時，請再點低逃圖示'});}
+  try{result=await bounded(updateProvider(id),58000,{state:'needs_usage',message:'讀取逾時，請再點低逃圖示'});}
   catch{result={state:'error',message:'讀取失敗，請再點低逃圖示'};}
   await chrome.storage.local.set({['scanStatus_'+id]:result});
  })().finally(()=>scanning.delete(id));
