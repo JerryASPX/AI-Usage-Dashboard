@@ -10,6 +10,15 @@ globalThis.UsageParser = (() => {
  function parseUsage(text,provider){
   const lines=text.replace(/[\u00a0\u202f]/g,' ').replace(/[\u200b-\u200d\ufeff]/g,'').replace(/％/g,'%').split(/\n+/).map(s=>s.trim()).filter(Boolean);
   if(provider==='grok'){
+   const balanceMark=/額外使用額度|額外用量|额外使用额度|额外用量|額外點數|额外点数|extra\s+credits?|additional\s+credits?|bonus\s+credits?|extra\s+usage(?:\s+allowance)?|additional\s+usage/i;
+   const kept=[];
+   for(const line of lines){
+    const at=line.search(balanceMark);
+    if(at<0){kept.push(line);continue;}
+    if(at>0){const head=line.slice(0,at).trim();if(head)kept.push(head);}
+    break;
+   }
+   lines.splice(0,lines.length,...kept);
    const flat=lines.join(' ');
    const sections=[flat];
    for(const marker of flat.matchAll(/使用情況|使用狀況|usage/gi))sections.unshift(flat.slice(marker.index));
@@ -25,7 +34,7 @@ globalThis.UsageParser = (() => {
    const headerRE=/reset|refresh|weekly|total|remaining|used|usage|premium|supergrok|重設|重置|刷新|每[週周]|本[週周]|總|总|已使用|已用|剩餘|剩余|用量|使用情況|使用狀況/i;
    function addProduct(raw,value){
     const name=raw.replace(/\s+/g,' ').trim();
-    if(!name||name.length>24||headerRE.test(name)||value<0||value>100)return;
+    if(!name||name.length>24||headerRE.test(name)||balanceMark.test(name)||value<0||value>100)return;
     const label=aliases.find(([,re])=>re.test(name))?.[0]||name;
     if(!products.some(p=>p.label.toLowerCase()===label.toLowerCase()))products.push({label,value});
    }

@@ -13,6 +13,7 @@ async function readGrokFrames(id){
    const samples=[];const visited=new Set();
    const productRE=/(?:^|[^A-Za-z0-9])(Imagine|想像|想象|Grok\s*Bot|Grok\s*[23]|Cursor|遊標|游标|Deep\s*Search|深度搜尋|深度搜索|Reasoning|推理|Chat|聊天|Voice|語音|语音|Build|建置|構建|构建|API)(?=$|[^A-Za-z])/i;
    const headerRE=/reset|refresh|weekly|total|remaining|used|usage|premium|supergrok|重設|重置|刷新|每[週周]|本[週周]|總|总|已使用|已用|剩餘|剩余|用量|使用情況|使用狀況/i;
+   const balanceRE=/額外使用額度|額外用量|额外使用额度|额外用量|額外點數|额外点数|extra\s+credits?|additional\s+credits?|bonus\s+credits?|extra\s+usage(?:\s+allowance)?|additional\s+usage/i;
    function visit(root){
     if(!root||visited.has(root)||samples.length>16)return;
     visited.add(root);
@@ -40,10 +41,10 @@ async function readGrokFrames(id){
      const context=bar.parentElement?.parentElement?.innerText||'';
      const name=label||context.slice(0,160);
      const product=label.match(productRE)||context.match(productRE);
-     const nearby=[label,...context.split(/\n+/)].map(s=>s.trim().replace(/[:：]$/,'')).find(s=>s.length>=1&&s.length<=24&&!/[\d%％]/.test(s)&&!headerRE.test(s));
+     const nearby=[label,...context.split(/\n+/)].map(s=>s.trim().replace(/[:：]$/,'')).find(s=>s.length>=1&&s.length<=24&&!/[\d%％]/.test(s)&&!headerRE.test(s)&&!balanceRE.test(s));
      if(product)samples.push(`${product[1]} ${value}%`);
      else if(/每[週周]|weekly|premium|supergrok/i.test(name))samples.push(`每週 Premium 限制\n${value}% 已使用`);
-     else if(nearby&&/使用情況|使用狀況|usage|每[週周]|weekly/i.test(root.innerText||''))samples.push(`Usage\n${nearby} ${value}%`);
+     else if(!balanceRE.test(label)&&!balanceRE.test(name)&&nearby&&/使用情況|使用狀況|usage|每[週周]|weekly/i.test(root.innerText||''))samples.push(`Usage\n${nearby} ${value}%`);
     }
     for(const e of root.querySelectorAll?.('*')||[])if(e.shadowRoot)visit(e.shadowRoot);
    }
