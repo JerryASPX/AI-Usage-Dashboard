@@ -68,6 +68,7 @@ async function updateProvider(id){
  let lastData=null;
  try{
   temporary=await chrome.tabs.create({url:CONFIG[id].url,active:false});
+  if(id==='claude')await delay(5000);
   for(let attempt=0;attempt<4;attempt++){
    const deadline=Date.now()+12000;
    while(Date.now()<deadline){
