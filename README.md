@@ -2,7 +2,7 @@
 
 Chrome／Edge 擴充套件（Manifest V3），用「小瑪姬／低逃」手繪風介面，一次查看 **ChatGPT、Gemini、Grok、Claude** 的官方用量頁進度。
 
-目前版本：**v1.6.7**（修復 Grok 用量讀取）。
+目前版本：**v1.6.8**（Grok 排除額外點數標籤、Claude 先等 5 秒再抓、用量抓取會重試）。
 
 倉庫：https://github.com/JerryASPX/AI-Usage-Dashboard
 
@@ -62,6 +62,11 @@ Chrome／Edge 擴充套件（Manifest V3），用「小瑪姬／低逃」手繪�
 - 非 Chrome Web Store 上架包，僅開發者模式載入
 
 ## Changelog（摘要）
+
+### v1.6.8
+- 用量抓取改為等到抓到數字才關分頁，沒抓到會 reload 最多 3 次
+- Grok 不再把「額外點數／額外使用額度」等標籤當成用量
+- Claude 用量頁開好後先等 5 秒再開始抓，減少還沒出數字就被判定失敗
 
 ### v1.6.7
 - 修復 Grok 用量讀取（Imagine／Grok Bot 等）

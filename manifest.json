@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "AI 用量儀表板 · 手繪版",
-  "version": "1.6.7",
+  "version": "1.6.8",
   "description": "小瑪姬手繪風格的四合一 AI 用量儀表板，兩列兩格、無捲軸。",
   "permissions": [
     "tabs",
