@@ -47,16 +47,17 @@
   visit(document,0);return {texts:out,shadows,frames};
  }
  async function read(){
+  if(provider==='claude'){for(const e of document.querySelectorAll('button,[role=button],[aria-expanded]')){const label=[e.getAttribute('aria-label'),e.getAttribute('title'),e.innerText].filter(Boolean).join(' ');if(e.getAttribute('aria-expanded')==='false'&&/weekly|\u672c\u9031|\u6bcf\u9031/i.test(label)){e.click();await new Promise(resolve=>setTimeout(resolve,300));break;}}}
   const saved=await chrome.storage.local.get('hiddenProviders');
   if(saved.hiddenProviders?.includes(provider))return {provider,metrics:[],state:'hidden',version:2,readerVersion:'1.6.7'};
   const candidates=roots();if(!candidates.length)return {provider,metrics:[],state:'open_usage',version:2};
-  const parsed=candidates.flatMap(r=>(provider==='grok'?[r.innerText,renderedText(r)]:[r.innerText,r.textContent]).filter((s,i,a)=>typeof s==='string'&&s.trim()&&(i===0||s!==a[0])).map(s=>UsageParser.parseUsage(s,provider)));
+  const parsed=candidates.flatMap(r=>(provider==='grok'?[r.innerText,renderedText(r)]:provider==='claude'?[r.innerText]:[r.innerText,r.textContent]).filter((s,i,a)=>typeof s==='string'&&s.trim()&&(i===0||s!==a[0])).map(s=>UsageParser.parseUsage(s,provider)));
   let nested={texts:[],shadows:0,frames:0};
   if(provider==='grok'&&!parsed.some(p=>p.metrics.length)){
    nested=nestedTexts();for(const sample of nested.texts)parsed.push(UsageParser.parseUsage(sample,provider));
   }
   if(!parsed.length)return {provider,metrics:[],state:'no_numbers',version:2,readerVersion:'1.6.7'};
-  const rank=p=>p.metrics.length*10+(p.distribution?.products.length||0)+(p.distribution?.consistent?20:0);
+  const rank=p=>provider==='claude'?p.metrics.filter(m=>m.kind==='used'||m.kind==='remaining').length*20+p.metrics.length*5:p.metrics.length*10+(p.distribution?.products.length||0)+(p.distribution?.consistent?20:0);
   parsed.sort((a,b)=>rank(b)-rank(a));
   const readInfo=provider==='grok'?{visiblePercents:(renderedText(document.body)||'').match(/\d+(?:\.\d+)?\s*[%％]/g)?.length||0,shadows:nested.shadows,frames:nested.frames}:undefined;
   const data={...parsed[0],provider,updatedAt:Date.now(),version:2,readerVersion:'1.6.7',readInfo,usageURL:isUsageURL()?location.href:null};

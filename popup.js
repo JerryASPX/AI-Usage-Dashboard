@@ -28,7 +28,7 @@ function track(value,label,cls='track'){const t=el('div',cls),fill=el('i','fill'
 function render(id,data,result){
  const card=document.getElementById(id),area=card.querySelector('.metrics');area.replaceChildren();const current=data?.version===2&&(id!=='grok'||data.readerVersion==='1.6.7'||data.readerVersion==='1.6.6');const metrics=current?data.metrics||[]:[];
  if(id!=='grok'){
-  for(const[key,label]of providers[id].rows){const m=metrics.find(m=>m.id===key),row=el('div','quota'),top=el('div','quota-top');top.append(el('b','quota-label',label));const value=el('span','quota-value');value.append(el('small','',m?kind(m):'未讀取'),el('strong','',m?pct(m.value):'—'));top.append(value);row.append(top,track(m?.value,label),el('div','reset',m?.reset||'重設時間尚未讀取'));area.append(row);}
+  const rows=[...providers[id].rows];if(id==='claude'&&metrics.some(m=>m.id==='fable'))rows.push(['fable','Fable']);for(const[key,label]of rows){const m=metrics.find(m=>m.id===key),row=el('div','quota'),top=el('div','quota-top');top.append(el('b','quota-label',label));const value=el('span','quota-value');value.append(el('small','',m?kind(m):'未讀取'),el('strong','',m?pct(m.value):'—'));top.append(value);row.append(top,track(m?.value,label),el('div','reset',m?.reset||'重設時間尚未讀取'));if(key==='fable'&&m?.note)row.append(el('div','reset',m.note));area.append(row);}
  }else{
   const total=metrics.find(m=>m.id==='total'),d=current?data?.distribution:null;
   const left=el('div','hero');left.append(el('b','','總使用量'));const circle=el('div','gauge');circle.style.setProperty('--progress',(total?.value||0)*3.6+'deg');if(d?.totalInferred)circle.title='由產品用量合計推算';circle.append(el('strong','',total?pct(total.value):'—'));left.append(circle);

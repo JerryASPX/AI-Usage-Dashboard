@@ -76,7 +76,7 @@ async function updateProvider(id){
    if(tab.status==='complete'){
     const data=await bounded(id==='grok'?readGrokFrames(temporary.id):readTab(temporary.id),3500,null);
     if(data)lastData=data;
-    if(data?.metrics?.length)return {state:'updated',data};
+    if(id==='claude'?['current','weekly'].every(key=>data?.metrics?.some(metric=>metric.id===key)):data?.metrics?.length)return {state:'updated',data};
    }
     await delay(650);
    }

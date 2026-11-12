@@ -6,6 +6,7 @@ globalThis.UsageParser = (() => {
   gemini:[['current','目前用量',/current|目前用量|當前用量|本次|session/i],['weekly','每週上限',/weekly|每[週周]|週上限/i]],
   claude:[['current','目前工作階段',/目前工作階段|本次工作階段|current session|目前用量|當前|session/i],['weekly','每週用量',/^本週$|每週用量|weekly|週上限/i]]
  };
+ const isClaudeWeeklyHeading=s=>/^(?:本週|weekly(?:\s+limits?)?|每週限制|每週用量)[\s\u2304\u25be\u25bc\u2305\u2303\u25b2\u25b4\u25b3v\u02c5\u02c4]*$/i.test(s)&&!/%/.test(s);
  const number=s=>{const m=s.match(pct);return m&&Number(m[1])<=100?Number(m[1]):null;};
  function parseUsage(text,provider){
   const lines=text.replace(/[\u00a0\u202f]/g,' ').replace(/[\u200b-\u200d\ufeff]/g,'').replace(/％/g,'%').split(/\n+/).map(s=>s.trim()).filter(Boolean);
@@ -67,16 +68,23 @@ globalThis.UsageParser = (() => {
   }
   const metrics=[];
   for(const [id,label,re]of defs[provider]||[]){
-   const heading=provider==='claude'&&id==='weekly'?lines.findIndex(s=>/^(本週|weekly)$/i.test(s)):-1;
-   const start=heading>=0?heading:lines.findIndex(s=>re.test(s)&&!resetRE.test(s));if(start<0)continue;
+   const heading=provider==='claude'&&id==='weekly'?lines.findIndex(isClaudeWeeklyHeading):-1;
+   const start=provider==='claude'&&id==='weekly'?heading:lines.findIndex(s=>re.test(s)&&!resetRE.test(s));if(start<0)continue;
    let end=lines.length;
-   for(let i=start+1;i<lines.length;i++){if((defs[provider]||[]).some(d=>d[2].test(lines[i])&&!resetRE.test(lines[i]))||/^(sonnet|opus|額外用量|extra usage)/i.test(lines[i])){end=i;break;}}
+   for(let i=start+1;i<lines.length;i++){if((provider==='claude'&&id==='current'&&isClaudeWeeklyHeading(lines[i]))||(defs[provider]||[]).some(d=>d[2].test(lines[i])&&!resetRE.test(lines[i])&&!(provider==='claude'&&d[0]==='weekly'))||/^(sonnet|opus|額外用量|extra usage)/i.test(lines[i])){end=i;break;}}
    const block=lines.slice(start,end),valueLines=block.filter(s=>number(s)!==null&&!resetRE.test(s));
    const usedRE=/已使用|已用|\bused\b/i,remainingRE=/還剩|剩餘|剩余|remaining/i;
-   const valueLine=valueLines.find(s=>usedRE.test(s)&&!remainingRE.test(s))||valueLines.find(s=>remainingRE.test(s))||valueLines[0];if(!valueLine)continue;
+   const labeledValue=valueLines.find(s=>usedRE.test(s)&&!remainingRE.test(s))||valueLines.find(s=>remainingRE.test(s));
+   const firstMessageNotice=provider==='claude'&&id==='current'&&block.some(s=>/after your first message|from your first message|first message|\u7b2c\u4e00\u5247\u8a0a\u606f|\u9996\u6b21\u8a0a\u606f/i.test(s));
+   if(!labeledValue&&firstMessageNotice){metrics.push({id,label,value:0,kind:'used',reset:''});continue;}
+   const valueLine=labeledValue||valueLines.find(s=>provider!=='claude'||!/\b100\s*%/.test(s));if(!valueLine)continue;
    const value=number(valueLine),kind=remainingRE.test(valueLine)?'remaining':usedRE.test(valueLine)?'used':'reported';
    const reset=block.find(s=>resetRE.test(s))||'';
    metrics.push({id,label,value,kind,reset});
+  }
+  if(provider==='claude'){
+   const fableStart=lines.findIndex(s=>/^Fable$/i.test(s));
+   if(fableStart>=0){const next=lines.findIndex((s,i)=>i>fableStart&&/^(sonnet|opus|extra usage)/i.test(s));const block=lines.slice(fableStart,next<0?lines.length:next);const fableUsedRE=/\u5df2\u4f7f\u7528|\u5df2\u7528|\bused\b/i;const fableRemainingRE=/\u9084\u5269|\u5269\u9918|\u5269\u4f59|remaining/i;const valueLine=block.find(s=>fableUsedRE.test(s)&&!fableRemainingRE.test(s)&&number(s)!==null)||block.find(s=>number(s)!==null&&!resetRE.test(s));if(valueLine)metrics.push({id:'fable',label:'Fable',value:number(valueLine),kind:fableUsedRE.test(valueLine)?'used':'reported',reset:block.find(s=>resetRE.test(s))||'',note:block.find(s=>/at most 50%|up to 50%|\u6700\u591a.{0,24}50%|\u81f3\u591a.{0,24}50%|\u6bcf\u9031\u4e0a\u9650\u7684\s*50%/i.test(s))||''});}
   }
   return {metrics,state:metrics.length?'ready':'no_numbers'};
  }

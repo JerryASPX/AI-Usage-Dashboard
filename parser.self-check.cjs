@@ -16,6 +16,21 @@ const expected = [
   {id: 'current', value: 0, kind: 'used'},
   {id: 'weekly', value: 0, kind: 'used'},
 ];
+const officialCollapsed = caret => `目前工作階段
+從您的第一則訊息開始
+已使用 0%
+本週${caret}
+星期五上午5:00 重設
+已使用 80%`;
+for (const caret of [' ▾', '▼']) {
+  const text = officialCollapsed(caret);
+  const metrics = globalThis.UsageParser.parseUsage(text, 'claude').metrics;
+  assert.deepEqual(metrics.map(({id,value,kind})=>({id,value,kind})), [
+    {id:'current',value:0,kind:'used'}, {id:'weekly',value:80,kind:'used'},
+  ]);
+  assert.equal(metrics.find(m=>m.id==='current').reset.includes('星期五'), false);
+  assert.match(metrics.find(m=>m.id==='weekly').reset,/星期五上午5:00/);
+}
 const result = summary(official);
 assert.deepEqual(result, expected);
 console.log('Official zh-TW:', JSON.stringify(result));
@@ -28,6 +43,51 @@ console.log('Remaining only:', JSON.stringify(remaining));
 assert.deepEqual(summary('Current session\n0% used\nWeekly\n100% remaining\n0% used'), expected);
 assert.deepEqual(summary(official.replace('目前工作階段', '本次工作階段')), expected);
 assert.deepEqual(summary('尚無使用量。您的每週限額還剩 100%。'), []);
+const currentNotice = 'Current session\nAvailable after your first message';
+for (const caret of ['\u2304', '\u02c5', '\u25be', '\u25bc']) {
+  const collapsed = `${currentNotice}\n0% used\nWeekly ${caret}\nResets Friday 5:00 PM\n80% used`;
+  const metrics = globalThis.UsageParser.parseUsage(collapsed, 'claude').metrics;
+  assert.deepEqual(metrics.map(({id,value,kind})=>({id,value,kind})), [
+    {id:'current',value:0,kind:'used'}, {id:'weekly',value:80,kind:'used'},
+  ]);
+  assert.match(metrics.find(m=>m.id==='weekly').reset,/Friday 5:00 PM/);
+}
+const stray = `${currentNotice}\n100%\nWeekly \u2304\nResets Friday 5:00 PM\n80% used`;
+assert.deepEqual(summary(stray), [
+  {id:'current',value:0,kind:'used'}, {id:'weekly',value:80,kind:'used'},
+]);
+const expanded = `${currentNotice}\n0% used\nWeekly \u2304\nResets Friday 5:00 PM\n80% used\nFable\nAt most 50% of weekly usage\nResets Friday 5:00 PM\n21% used`;
+const expandedMetrics = globalThis.UsageParser.parseUsage(expanded,'claude').metrics;
+assert.deepEqual(expandedMetrics.map(({id,value,kind})=>({id,value,kind})), [
+  {id:'current',value:0,kind:'used'}, {id:'weekly',value:80,kind:'used'}, {id:'fable',value:21,kind:'used'},
+]);
+assert.match(expandedMetrics.find(m=>m.id==='fable').note,/at most 50%/i);
+const officialExpanded = `目前工作階段
+從您的第一則訊息開始
+已使用 0%
+本週 ▲
+星期五上午5:00 重設
+已使用 80%
+Fable
+最多可使用您每週上限的 50%
+星期五上午5:00 重設
+已使用 21%`;
+const zhExpandedMetrics = globalThis.UsageParser.parseUsage(officialExpanded,'claude').metrics;
+assert.deepEqual(zhExpandedMetrics.map(({id,value,kind})=>({id,value,kind})), [
+  {id:'current',value:0,kind:'used'}, {id:'weekly',value:80,kind:'used'}, {id:'fable',value:21,kind:'used'},
+]);
+assert.match(zhExpandedMetrics.find(m=>m.id==='fable').note,/最多可使用您每週上限的 50%/);
+for (const currentValue of ['100%', '已使用 0%\n100%']) {
+  const zhStray = `目前工作階段\n從您的第一則訊息開始\n${currentValue}\n本週 ▾\n星期五上午5:00 重設\n已使用 80%`;
+  assert.deepEqual(summary(zhStray), [
+    {id:'current',value:0,kind:'used'}, {id:'weekly',value:80,kind:'used'},
+  ]);
+}
+const weeklyLimits = `目前工作階段\n從您的第一則訊息開始\n已使用 0%\n每週限制\n星期五上午5:00 重設\n已使用 80%`;
+assert.deepEqual(summary(weeklyLimits), [
+  {id:'current',value:0,kind:'used'}, {id:'weekly',value:80,kind:'used'},
+]);
+console.log('Claude dropdown, stray percent, and Fable checks passed.');
 console.log('All Claude parser self-checks passed.');
 
 function grok(text){
