@@ -2,7 +2,7 @@
 
 Chrome／Edge 擴充套件（Manifest V3），用「小瑪姬／低逃」手繪風介面，一次查看 **ChatGPT、Gemini、Grok、Claude** 的官方用量頁進度。
 
-目前版本：**v1.6.8**（Grok 排除額外點數標籤、Claude 先等 5 秒再抓、用量抓取會重試）。
+目前版本：**v1.6.9**（Claude 未使用工作階段與 Fable、彈窗高度自動適應）。
 
 倉庫：https://github.com/JerryASPX/AI-Usage-Dashboard
 
@@ -62,6 +62,12 @@ Chrome／Edge 擴充套件（Manifest V3），用「小瑪姬／低逃」手繪�
 - 非 Chrome Web Store 上架包，僅開發者模式載入
 
 ## Changelog（摘要）
+
+### v1.6.9
+- Claude 尚未開始使用時，工作階段記為已使用 0%；在送出第一則訊息前不顯示 5 小時重設時間
+- 「本週」標題可搭配下拉箭頭正確辨識，工作階段與每週用量都讀到才關分頁
+- 展開「本週」後會另列 Fable 用量（上限為每週的 50%）
+- 彈窗與卡片高度自動適應內容，含 Fable 時不再出現捲軸
 
 ### v1.6.8
 - 用量抓取改為等到抓到數字才關分頁，沒抓到會 reload 最多 3 次
