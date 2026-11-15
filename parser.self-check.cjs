@@ -3,6 +3,32 @@ const fs = require('node:fs');
 const path = require('node:path');
 require('./parser.js');
 
+function chatgpt(text){
+  return globalThis.UsageParser.parseUsage(text,'chatgpt').metrics;
+}
+const chatgptSample = `5 hour limit
+Resets in 3 hours
+30% remaining
+Weekly limit
+Resets on Monday
+40% remaining`;
+const chatgptMetrics = chatgpt(chatgptSample);
+assert.deepEqual(chatgptMetrics.map(({id,value,kind})=>({id,value,kind})),[
+  {id:'five_hour',value:70,kind:'used'}, {id:'weekly',value:60,kind:'used'},
+]);
+assert.equal(chatgptMetrics.find(m=>m.id==='five_hour').reset,'Resets in 3 hours');
+assert.equal(chatgptMetrics.find(m=>m.id==='weekly').reset,'Resets on Monday');
+for(const remaining of ['30% remaining','remaining 30%','\u5269\u9918 30%','\u9084\u5269 30%']){
+  const metrics=chatgpt(`5 hour limit\nResets at 5 PM\n${remaining}`);
+  assert.deepEqual(metrics.map(({id,value,kind})=>({id,value,kind})),[{id:'five_hour',value:70,kind:'used'}],remaining);
+  assert.equal(metrics[0].reset,'Resets at 5 PM');
+}
+for(const used of ['70% used','\u5df2\u4f7f\u7528 70%']){
+  assert.deepEqual(chatgpt(`5 hour limit\n${used}`).map(({id,value,kind})=>({id,value,kind})),[{id:'five_hour',value:70,kind:'used'}]);
+}
+assert.deepEqual(chatgpt('5 hour limit\n70% used\n30% remaining').map(({id,value,kind})=>({id,value,kind})),[{id:'five_hour',value:70,kind:'used'}]);
+assert.deepEqual(chatgpt('5 hour limit\n30%').map(({id,value,kind})=>({id,value,kind})),[{id:'five_hour',value:30,kind:'reported'}]);
+
 const official = `尚無使用量。您的每週限額還剩 100%。
 目前工作階段
 從您的第一則訊息開始

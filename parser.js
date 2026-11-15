@@ -78,7 +78,8 @@ globalThis.UsageParser = (() => {
    const firstMessageNotice=provider==='claude'&&id==='current'&&block.some(s=>/after your first message|from your first message|first message|\u7b2c\u4e00\u5247\u8a0a\u606f|\u9996\u6b21\u8a0a\u606f/i.test(s));
    if(!labeledValue&&firstMessageNotice){metrics.push({id,label,value:0,kind:'used',reset:''});continue;}
    const valueLine=labeledValue||valueLines.find(s=>provider!=='claude'||!/\b100\s*%/.test(s));if(!valueLine)continue;
-   const value=number(valueLine),kind=remainingRE.test(valueLine)?'remaining':usedRE.test(valueLine)?'used':'reported';
+   let value=number(valueLine),kind=remainingRE.test(valueLine)?'remaining':usedRE.test(valueLine)?'used':'reported';
+   if(provider==='chatgpt'&&kind==='remaining'){value=100-value;kind='used';}
    const reset=block.find(s=>resetRE.test(s))||'';
    metrics.push({id,label,value,kind,reset});
   }
