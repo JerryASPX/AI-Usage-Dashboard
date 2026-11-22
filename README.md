@@ -2,7 +2,7 @@
 
 Chrome／Edge 擴充套件（Manifest V3），用「小瑪姬／低逃」手繪風介面，一次查看 **ChatGPT、Gemini、Grok、Claude** 的官方用量頁進度。
 
-目前版本：**v1.6.9**（Claude 未使用工作階段與 Fable、彈窗高度自動適應）。
+目前版本：**v1.6.10**（ChatGPT 改為顯示已使用用量）。
 
 倉庫：https://github.com/JerryASPX/AI-Usage-Dashboard
 
@@ -62,6 +62,9 @@ Chrome／Edge 擴充套件（Manifest V3），用「小瑪姬／低逃」手繪�
 - 非 Chrome Web Store 上架包，僅開發者模式載入
 
 ## Changelog（摘要）
+
+### v1.6.10
+- ChatGPT 用量改為顯示「已使用」，頁面給剩餘時換算為 100% 減剩餘，與其他三家一致；舊快取也會換算
 
 ### v1.6.9
 - Claude 尚未開始使用時，工作階段記為已使用 0%；在送出第一則訊息前不顯示 5 小時重設時間
